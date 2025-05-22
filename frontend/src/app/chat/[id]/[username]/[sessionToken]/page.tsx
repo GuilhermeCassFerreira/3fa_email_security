@@ -88,39 +88,49 @@ const ChatPage = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-500">
-      <div className="flex-1 w-full max-w-7xl overflow-y-auto bg-gray-100 rounded-lg shadow-md  m-3">
-        <div className="p-4">
+    <main className="p-4 sm:p-6 md:p-8">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
+        <div className="p-4 border-b border-gray-200">
+          <h1 className="text-xl font-semibold text-gray-700">Chat Criptografado</h1>
+          <p className="text-xs text-gray-500">Usuário: {params.username}</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
           {messages.map((message, index) => (
             <div
               key={index}
-              className="bg-blue-100 text-blue-900 rounded-md p-2 mb-2"
+              className="p-3 rounded-lg shadow max-w-xs sm:max-w-md md:max-w-lg break-words bg-blue-500 text-white ml-auto"
             >
-              {message.cipherMsg}
-              <br />
-              {message.msg}
+              <p className="text-sm">{message.msg}</p>
+              <p className="text-xs opacity-70 mt-1">Cipher: {message.cipherMsg.substring(0,30)}...</p>
             </div>
           ))}
+          {messages.length === 0 && (
+            <p className="text-center text-gray-500">Nenhuma mensagem ainda. Comece a conversa!</p>
+          )}
+        </div>
+
+        <div className="p-4 sm:p-6 border-t border-gray-200 bg-white">
+          <div className="flex items-center space-x-3">
+            <input
+              type="text"
+              className="flex-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-shadow duration-150 ease-in-out hover:shadow-md"
+              placeholder="Digite sua mensagem..."
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
+            />
+            <button
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out transform hover:-translate-y-px active:translate-y-0 active:shadow-inner"
+              onClick={handleSendMessage}
+              disabled={!inputText.trim()}
+            >
+              Enviar
+            </button>
+          </div>
         </div>
       </div>
-      <div className="w-full max-w-7xl p-4 bg-gray-100 rounded-lg shadow-md m-3">
-        <div className="flex items-center">
-          <input
-            type="text"
-            className="flex-1 mr-2 text-black border-gray-300 border rounded-md p-2"
-            placeholder="Type your message..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-          />
-          <button
-            className="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-blue-200"
-            onClick={handleSendMessage}
-          >
-            Send
-          </button>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 };
 
