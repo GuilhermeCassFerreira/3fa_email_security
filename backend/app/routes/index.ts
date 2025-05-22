@@ -6,9 +6,11 @@ import {
   userRegistration,
 } from "../controllers/userController";
 import { receiveMessage } from "../controllers/messageController";
+import { listUsers } from "../controllers/userController";
 
 const router = express.Router();
 
+router.get("/users", listUsers); // Endpoint para listar usuários
 router.get("/", (req: Request, res: Response) => {
   res.send("API com 2FA");
 });

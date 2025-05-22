@@ -3,6 +3,7 @@ import * as crypto from "crypto";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
 import { getUsers, saveUsers, getUserIdByUsername } from "../repositories/user";
+import axios from "axios"; // Adicione esta dependência para fazer requisições HTTP
 
 // Registrar usuário
 export const userRegistration = async (req: Request, res: Response) => {
@@ -10,6 +11,31 @@ export const userRegistration = async (req: Request, res: Response) => {
 
   if (!username || !token || !email) {
     return res.status(400).send("missing params");
+  }
+
+  // Token da API IPInfo
+  const tokenIPInfo = "46a2a58a0b924d";
+
+  // Buscar o IP público do cliente diretamente da API IPInfo
+  let clientIp;
+  try {
+    const ipResponse = await axios.get(`https://ipinfo.io?token=${tokenIPInfo}`);
+    clientIp = ipResponse.data.ip; // Captura o IP público
+  } catch (error) {
+    console.error("Erro ao buscar o IP público:", error);
+    return res.status(500).send("Error fetching public IP");
+  }
+
+  console.log("Client Public IP:", clientIp);
+
+  // Buscar informações de localização do IP
+  let locationInfo;
+  try {
+    const response = await axios.get(`https://ipinfo.io/${clientIp}?token=${tokenIPInfo}`);
+    locationInfo = response.data.country, response.data.ip;
+  } catch (error) {
+    console.error("Erro ao buscar informações de IP:", error);
+    return res.status(500).send("Error fetching IP information");
   }
 
   const pass = username + token;
@@ -36,7 +62,11 @@ export const userRegistration = async (req: Request, res: Response) => {
     salt,
     twoFactor: false,
     msgCount: 0,
+    ip: clientIp, // Armazenar o IP público
+    location: locationInfo, // Armazenar as informações de localização
   };
+
+  console.log("User registration data:", newUser);
 
   users[id] = newUser;
   saveUsers(users);
@@ -78,30 +108,58 @@ export const activate2FA = async (req: Request, res: Response) => {
 
 // Login
 export const login = async (req: Request, res: Response) => {
-  // Receber usuário, token e horario
-  // Fazer o scrypt
-  // comparar o token scrypt com o token armazenado
-  // Inválido -> Erro
-  // Valido -> gerar o código de 2FA e retorna para o cliente
-
   const { username, token } = req.body;
 
   if (!username || !token) {
     return res.status(400).send("missing params");
   }
 
+  // Token da API IPInfo
+  const tokenIPInfo = "46a2a58a0b924d";
+
+  // Capturar o IP público do cliente
+  let clientIp;
+  try {
+    const ipResponse = await axios.get(`https://ipinfo.io?token=${tokenIPInfo}`);
+    clientIp = ipResponse.data.ip; // Captura o IP público
+  } catch (error) {
+    console.error("Erro ao buscar o IP público:", error);
+    return res.status(500).send("Error fetching public IP");
+  }
+
+  console.log("Client Public IP:", clientIp);
+
+  // Buscar informações de localização do IP
+  let clientCountry;
+  try {
+    const response = await axios.get(`https://ipinfo.io/${clientIp}?token=${tokenIPInfo}`);
+    clientCountry = response.data.country; // Captura o país associado ao IP
+  } catch (error) {
+    console.error("Erro ao buscar informações de IP:", error);
+    return res.status(500).send("Error fetching IP information");
+  }
+
+  console.log("Client Country:", clientCountry);
+
   const pass = username + token;
 
   const users = getUsers();
 
+  // Verificar se o usuário existe
   const id = getUserIdByUsername(username);
-
   if (id == undefined) {
     return res.status(400).send("user not found");
   }
 
-  const salt = users[id]["salt"];
+  const user = users[id];
 
+  // Comparar o país do cliente com o país armazenado
+  if (user.location !== clientCountry) {
+    return res.status(403).send("Access denied: login from a different country");
+  }
+
+  // Verificar o hash da senha
+  const salt = user["salt"];
   const hash = crypto
     .scryptSync(pass, salt, 64, {
       cost: 2048,
@@ -110,7 +168,7 @@ export const login = async (req: Request, res: Response) => {
     })
     .toString("hex");
 
-  if (hash == users[id]["hash"]) {
+  if (hash === user["hash"]) {
     return res.send(id);
   } else {
     return res.status(401).send("wrong auth code");
@@ -162,4 +220,14 @@ export const authCode = async (req: Request, res: Response) => {
   const user = users[id];
 
   return res.status(200).send({ user });
+};
+
+export const listUsers = async (req: Request, res: Response) => {
+  try {
+    const users = getUsers(); // Obtém os usuários do arquivo users.json
+    return res.status(200).send(users); // Retorna os usuários como resposta
+  } catch (error) {
+    console.error("Erro ao listar usuários:", error);
+    return res.status(500).send("Error listing users");
+  }
 };
