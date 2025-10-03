@@ -1,4 +1,4 @@
-# 2FA Crypto Chat
+# 3FA Crypto Chat
 
 ## About
 
